@@ -34,59 +34,61 @@
           'SNET' => { icon: 'fas fa-umbrella', color: 'info' }
         } %>
 
-        <div class="d-xl-none mb-3">
-          <button class="btn btn-sm btn-falcon-default w-100" type="button" data-bs-toggle="collapse" data-bs-target="#portfolioLinksNav" aria-expanded="false" aria-controls="portfolioLinksNav">
-            <span class="fas fa-bars me-2"></span>Portfolio Links
-          </button>
-        </div>
-
-        <aside class="navbar navbar-light navbar-vertical navbar-expand-xl bg-white shadow-sm rounded-4 mb-4">
-          <script>
-            var navbarStyle = localStorage.getItem('navbarStyle');
-            if (navbarStyle && navbarStyle !== 'transparent') {
-              document.querySelector('.navbar-vertical').classList.add(`navbar-${navbarStyle}`);
-            }
-          </script>
-          <div class="d-flex align-items-center px-3" style="height: 50px;">
-            <span class="font-sans-serif text-primary fw-bold">
-              Portfolio Links
-            </span>
+        <% if @portfolio_link_snapshots.present? %>
+          <div class="d-xl-none mb-3">
+            <button class="btn btn-sm btn-falcon-default w-100" type="button" data-bs-toggle="collapse" data-bs-target="#portfolioLinksNav" aria-expanded="false" aria-controls="portfolioLinksNav">
+              <span class="fas fa-bars me-2"></span>Portfolio Links
+            </button>
           </div>
 
-          <div class="collapse d-xl-block" id="portfolioLinksNav">
-            <div class="navbar-vertical-content scrollbar">
-              <div class="px-3 pb-3">
-                <% @portfolio_link_snapshots.to_a.each do |snapshot| %>
-                  <% style = portfolio_nav_styles.fetch(snapshot.code, { icon: 'fas fa-chart-line', color: 'primary' }) %>
-                  <div class="border-top pt-2 mt-2">
-                    <div class="d-flex align-items-center justify-content-between fs-11 text-500 text-uppercase mb-1">
-                      <span><span class="<%= style[:icon] %> text-<%= style[:color] %> me-1"></span><%= snapshot.name %></span>
-                      <span><%= compact_indian_currency(snapshot.current_value) %></span>
+          <aside class="navbar navbar-light navbar-vertical navbar-expand-xl bg-white shadow-sm rounded-4 mb-4">
+            <script>
+              var navbarStyle = localStorage.getItem('navbarStyle');
+              if (navbarStyle && navbarStyle !== 'transparent') {
+                document.querySelector('.navbar-vertical').classList.add(`navbar-${navbarStyle}`);
+              }
+            </script>
+            <div class="d-flex align-items-center px-3" style="height: 50px;">
+              <span class="font-sans-serif text-primary fw-bold">
+                Portfolio Links
+              </span>
+            </div>
+
+            <div class="collapse d-xl-block" id="portfolioLinksNav">
+              <div class="navbar-vertical-content scrollbar">
+                <div class="px-3 pb-3">
+                  <% @portfolio_link_snapshots.to_a.each do |snapshot| %>
+                    <% style = portfolio_nav_styles.fetch(snapshot.code, { icon: 'fas fa-chart-line', color: 'primary' }) %>
+                    <div class="border-top pt-2 mt-2">
+                      <div class="d-flex align-items-center justify-content-between fs-11 text-500 text-uppercase mb-1">
+                        <span><span class="<%= style[:icon] %> text-<%= style[:color] %> me-1"></span><%= snapshot.name %></span>
+                        <span><%= compact_indian_currency(snapshot.current_value) %></span>
+                      </div>
+                      <table class="table table-sm table-borderless mb-0">
+                        <tbody>
+                          <% snapshot.children.each do |child| %>
+                            <% active_link = defined?(@goal) && @goal&.code == child.code %>
+                            <tr class="<%= active_link ? 'bg-primary-subtle' : '' %>">
+                              <td class="py-1 ps-0">
+                                <% link_classes = "d-flex align-items-center text-decoration-none #{active_link ? 'text-primary fw-semibold' : 'text-700'}" %>
+                                <% link_content = safe_join([
+                                  content_tag(:span, '', class: "#{style[:icon]} text-#{style[:color]} me-2"),
+                                  content_tag(:span, child.code, class: 'fs-10')
+                                ]) %>
+                                <%= link_to link_content, portfolio_path(child.code), class: link_classes %>
+                              </td>
+                              <td class="py-1 pe-0 text-end fs-11 text-500"><%= compact_indian_currency(child.current_value) %></td>
+                            </tr>
+                          <% end %>
+                        </tbody>
+                      </table>
                     </div>
-                    <table class="table table-sm table-borderless mb-0">
-                      <tbody>
-                        <% snapshot.children.each do |child| %>
-                          <% active_link = defined?(@goal) && @goal&.code == child.code %>
-                          <tr class="<%= active_link ? 'bg-primary-subtle' : '' %>">
-                            <td class="py-1 ps-0">
-                              <% link_classes = "d-flex align-items-center text-decoration-none #{active_link ? 'text-primary fw-semibold' : 'text-700'}" %>
-                              <% link_content = safe_join([
-                                content_tag(:span, '', class: "#{style[:icon]} text-#{style[:color]} me-2"),
-                                content_tag(:span, child.code, class: 'fs-10')
-                              ]) %>
-                              <%= link_to link_content, portfolio_path(child.code), class: link_classes %>
-                            </td>
-                            <td class="py-1 pe-0 text-end fs-11 text-500"><%= compact_indian_currency(child.current_value) %></td>
-                          </tr>
-                        <% end %>
-                      </tbody>
-                    </table>
-                  </div>
-                <% end %>
+                  <% end %>
+                </div>
               </div>
             </div>
-          </div>
-        </aside>
+          </aside>
+        <% end %>
 
         <div class="content">
           <div class="content-body mt-3">

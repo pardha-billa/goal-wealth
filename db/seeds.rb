@@ -18,3 +18,10 @@
 end
 
 Setting.find_or_create_by!(key: 'currency') { |setting| setting.value = 'INR' }
+
+admin = User.find_or_initialize_by(email: 'admin@goalwealth.local')
+admin.admin = true
+if admin.new_record?
+  admin.password = 'ChangeMe123!'
+end
+admin.save!

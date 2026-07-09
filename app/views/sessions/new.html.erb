@@ -1,0 +1,26 @@
+<div class="row justify-content-center">
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h3 class="mb-1">Sign in</h3>
+        <p class="text-500 mb-4">Use your GoalWealth account.</p>
+
+        <% if flash[:alert].present? %>
+          <div class="alert alert-danger"><%= flash[:alert] %></div>
+        <% end %>
+
+        <%= form_with url: session_path, method: :post, local: true do |f| %>
+          <div class="mb-3">
+            <%= label_tag :email, 'Email', class: 'form-label' %>
+            <%= email_field_tag :email, params[:email], class: 'form-control', autocomplete: 'email', required: true %>
+          </div>
+          <div class="mb-3">
+            <%= label_tag :password, 'Password', class: 'form-label' %>
+            <%= password_field_tag :password, nil, class: 'form-control', autocomplete: 'current-password', required: true %>
+          </div>
+          <%= submit_tag 'Sign in', class: 'btn btn-primary w-100' %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
