@@ -1,0 +1,173 @@
+<% snapshots = @dashboard.snapshots %>
+<% total_progress = @dashboard.total_progress_pct %>
+<% total_progress_width = total_progress ? [[total_progress, 0].max, 100].min : 0 %>
+<% total_remaining = @dashboard.total_remaining_to_target %>
+<% goal_styles = {
+  'RET' => { icon: 'fas fa-chart-line', color: 'primary' },
+  'EDU' => { icon: 'fas fa-graduation-cap', color: 'warning' },
+  'Emergency' => { icon: 'fas fa-shield-alt', color: 'success' },
+  'SNET' => { icon: 'fas fa-umbrella', color: 'info' }
+} %>
+
+<div class="content">
+  <div class="row align-items-center mb-4">
+    <div class="col-lg-8">
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <span class="badge bg-primary-subtle text-primary">Master</span>
+        <span class="badge bg-info-subtle text-info">Last NAV: <%= @last_nav_date ? @last_nav_date.strftime('%d/%m/%Y') : 'Not available' %></span>
+      </div>
+      <h2 class="mb-1">Master Dashboard</h2>
+      <p class="text-500 mb-0">Snapshot across Retirement, Education, Emergency and Safety Net goals.</p>
+    </div>
+    <div class="col-lg-4 mt-3 mt-lg-0">
+      <div class="d-flex flex-wrap justify-content-lg-end gap-2">
+        <%= button_to 'Update NAVs'.html_safe, update_dashboard_nav_path, method: :post, class: 'btn btn-sm btn-primary', form: { class: 'd-inline' } %>
+        <%= link_to '<span class="fas fa-gear me-1"></span>Admin Panel'.html_safe, rails_admin_path, class: 'btn btn-sm btn-falcon-default' %>
+      </div>
+    </div>
+  </div>
+
+  <div class="card py-3 mb-3">
+    <div class="card-body py-3">
+      <% metrics = [
+        {
+          label: 'Current Value',
+          value: indian_currency(@dashboard.total_current_value),
+          detail: "#{@dashboard.total_asset_count} assets",
+          delta: "#{@dashboard.total_transaction_count} txns",
+          color: 'primary',
+          trend: nil,
+          column_class: 'col-12 col-sm-6 col-md-3 border-200 border-bottom border-end pb-4'
+        },
+        {
+          label: 'Invested',
+          value: indian_currency(@dashboard.total_invested),
+          detail: 'Principal deployed',
+          delta: portfolio_percent(@dashboard.total_return_pct),
+          color: portfolio_trend_class(@dashboard.total_return_pct),
+          trend: portfolio_trend_icon(@dashboard.total_return_pct),
+          column_class: 'col-12 col-sm-6 col-md-3 border-200 border-bottom border-end-md pb-4 ps-3'
+        },
+        {
+          label: 'Gain / Loss',
+          value: indian_currency(@dashboard.total_absolute_return),
+          detail: "Return: #{portfolio_percent(@dashboard.total_return_pct)}",
+          delta: compact_indian_currency(@dashboard.total_absolute_return),
+          color: portfolio_trend_class(@dashboard.total_absolute_return),
+          trend: portfolio_trend_icon(@dashboard.total_absolute_return),
+          column_class: 'col-12 col-sm-6 col-md-3 border-200 border-bottom-md-0 border-end pt-4 pt-md-0 ps-md-3'
+        },
+        {
+          label: 'Target Progress',
+          value: portfolio_percent(total_progress),
+          detail: "Target: #{indian_currency(@dashboard.total_target_amount)}",
+          delta: total_remaining && total_remaining.positive? ? "#{compact_indian_currency(total_remaining)} left" : "#{compact_indian_currency(total_remaining.to_d.abs)} surplus",
+          color: total_remaining && total_remaining.positive? ? 'warning' : 'success',
+          trend: nil,
+          column_class: 'col-12 col-sm-6 col-md-3 pt-4 pt-md-0 ps-3'
+        }
+      ] %>
+
+      <div class="row g-0">
+        <% metrics.each do |metric| %>
+          <div class="<%= metric[:column_class] %>">
+            <h6 class="pb-1 text-700"><%= metric[:label] %></h6>
+            <p class="font-sans-serif lh-1 mb-1 fs-7"><%= metric[:value] %></p>
+            <div class="d-flex align-items-center">
+              <h6 class="fs-10 text-500 mb-0"><%= metric[:detail] %></h6>
+              <h6 class="fs-11 ps-3 mb-0 text-<%= metric[:color] %>">
+                <% if metric[:trend] %>
+                  <span class="me-1 fas fa-caret-<%= metric[:trend] %>"></span>
+                <% end %>
+                <%= metric[:delta] %>
+              </h6>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="fs-10 text-600">Combined goal coverage</span>
+          <span class="fs-10 fw-semibold"><%= portfolio_percent(total_progress) %></span>
+        </div>
+        <div class="progress bg-100" style="height: 0.5rem;">
+          <div class="progress-bar bg-primary" role="progressbar" style="width: <%= total_progress_width %>%;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12">
+      <div class="row g-3">
+        <% snapshots.each do |snapshot| %>
+          <% style = goal_styles.fetch(snapshot.code, { icon: 'fas fa-chart-line', color: 'primary' }) %>
+          <% progress_width = snapshot.progress_pct ? [[snapshot.progress_pct, 0].max, 100].min : 0 %>
+          <% remaining = snapshot.remaining_to_target %>
+          <div class="col-md-6 col-xl-3">
+            <div class="card h-100">
+              <div class="card-body">
+                <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
+                  <div class="d-flex align-items-center">
+                    <span class="<%= style[:icon] %> text-<%= style[:color] %> me-2"></span>
+                    <div>
+                      <h6 class="mb-0 text-700"><%= snapshot.name %></h6>
+                      <span class="badge bg-<%= style[:color] %>-subtle text-<%= style[:color] %>"><%= snapshot.code %></span>
+                    </div>
+                  </div>
+                  <% if snapshot.target_date.present? %>
+                    <span class="fs-11 text-500"><%= snapshot.target_date.strftime('%d/%m/%Y') %></span>
+                  <% end %>
+                </div>
+
+                <h4 class="mb-1"><%= indian_currency(snapshot.current_value) %></h4>
+                <p class="fs-10 mb-3 text-<%= portfolio_trend_class(snapshot.absolute_return) %>">
+                  <%= compact_indian_currency(snapshot.absolute_return) %> | Return <%= portfolio_percent(snapshot.return_pct) %>
+                </p>
+
+                <% if snapshot.target_amount.present? %>
+                  <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <span class="fs-11 text-500">Progress</span>
+                      <span class="fs-11 fw-semibold"><%= portfolio_percent(snapshot.progress_pct) %></span>
+                    </div>
+                    <div class="progress bg-100" style="height: 0.375rem;">
+                      <div class="progress-bar bg-<%= style[:color] %>" role="progressbar" style="width: <%= progress_width %>%;"></div>
+                    </div>
+                    <div class="d-flex justify-content-between gap-2 mt-2 fs-11 text-500">
+                      <span><%= indian_currency(snapshot.target_amount) %> target</span>
+                      <span><%= remaining && remaining.positive? ? "#{compact_indian_currency(remaining)} left" : "#{compact_indian_currency(remaining.to_d.abs)} surplus" %></span>
+                    </div>
+                  </div>
+                <% end %>
+
+                <div class="row g-0 text-center border-top border-bottom py-2">
+                  <div class="col-6 col-lg">
+                    <div class="fs-11 text-500">Invested</div>
+                    <div class="fs-10 fw-semibold"><%= compact_indian_currency(snapshot.invested_amount) %></div>
+                  </div>
+                  <div class="col-6 col-lg border-start">
+                    <div class="fs-11 text-500">XIRR</div>
+                    <div class="fs-10 fw-semibold text-<%= portfolio_trend_class(snapshot.xirr_pct) %>"><%= portfolio_percent(snapshot.xirr_pct) %></div>
+                  </div>
+                  <div class="col-6 col-lg border-start mt-2 mt-lg-0">
+                    <div class="fs-11 text-500">1D Change</div>
+                    <div class="fs-10 fw-semibold text-<%= portfolio_trend_class(snapshot.one_day_change) %>">
+                      <%= snapshot.one_day_change.present? ? "#{snapshot.one_day_change >= 0 ? '+' : ''}#{compact_indian_currency(snapshot.one_day_change)}" : '—' %>
+                      <div class="fs-11 text-500"><%= snapshot.one_day_change_pct ? portfolio_percent(snapshot.one_day_change_pct) : '—' %></div>
+                    </div>
+                  </div>
+                  <div class="col-6 col-lg border-start mt-2 mt-lg-0">
+                    <div class="fs-11 text-500">Assets</div>
+                    <div class="fs-10 fw-semibold"><%= snapshot.asset_count %></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

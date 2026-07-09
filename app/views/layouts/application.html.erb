@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html data-bs-theme="light" lang="en-US" dir="ltr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GoalWealth</title>
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700|Poppins:300,400,500,600,700,800,900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/falcon/vendors/simplebar/simplebar.min.css">
+    <link rel="stylesheet" href="/falcon/assets/css/theme.css" id="style-default">
+    <link rel="stylesheet" href="/falcon/assets/css/user.css" id="user-style-default">
+    <%= stylesheet_link_tag 'application', media: 'all', 'data-turbolinks-track': 'reload' %>
+  </head>
+
+  <body>
+    <main class="main" id="top">
+      <div class="container-xxl" data-layout="container">
+        <script>
+          var isFluid = JSON.parse(localStorage.getItem('isFluid'));
+          if (isFluid) {
+            var container = document.querySelector('[data-layout]');
+            container.classList.remove('container');
+            container.classList.add('container-fluid');
+          }
+        </script>
+
+        <% portfolio_nav_styles = {
+          'RET' => { icon: 'fas fa-chart-line', color: 'primary' },
+          'EDU' => { icon: 'fas fa-graduation-cap', color: 'warning' },
+          'Emergency' => { icon: 'fas fa-shield-alt', color: 'success' },
+          'SNET' => { icon: 'fas fa-umbrella', color: 'info' }
+        } %>
+
+        <div class="d-xl-none mb-3">
+          <button class="btn btn-sm btn-falcon-default w-100" type="button" data-bs-toggle="collapse" data-bs-target="#portfolioLinksNav" aria-expanded="false" aria-controls="portfolioLinksNav">
+            <span class="fas fa-bars me-2"></span>Portfolio Links
+          </button>
+        </div>
+
+        <aside class="navbar navbar-light navbar-vertical navbar-expand-xl bg-white shadow-sm rounded-4 mb-4">
+          <script>
+            var navbarStyle = localStorage.getItem('navbarStyle');
+            if (navbarStyle && navbarStyle !== 'transparent') {
+              document.querySelector('.navbar-vertical').classList.add(`navbar-${navbarStyle}`);
+            }
+          </script>
+          <div class="d-flex align-items-center px-3" style="height: 50px;">
+            <span class="font-sans-serif text-primary fw-bold">
+              Portfolio Links
+            </span>
+          </div>
+
+          <div class="collapse d-xl-block" id="portfolioLinksNav">
+            <div class="navbar-vertical-content scrollbar">
+              <div class="px-3 pb-3">
+                <% @portfolio_link_snapshots.to_a.each do |snapshot| %>
+                  <% style = portfolio_nav_styles.fetch(snapshot.code, { icon: 'fas fa-chart-line', color: 'primary' }) %>
+                  <div class="border-top pt-2 mt-2">
+                    <div class="d-flex align-items-center justify-content-between fs-11 text-500 text-uppercase mb-1">
+                      <span><span class="<%= style[:icon] %> text-<%= style[:color] %> me-1"></span><%= snapshot.name %></span>
+                      <span><%= compact_indian_currency(snapshot.current_value) %></span>
+                    </div>
+                    <table class="table table-sm table-borderless mb-0">
+                      <tbody>
+                        <% snapshot.children.each do |child| %>
+                          <% active_link = defined?(@goal) && @goal&.code == child.code %>
+                          <tr class="<%= active_link ? 'bg-primary-subtle' : '' %>">
+                            <td class="py-1 ps-0">
+                              <% link_classes = "d-flex align-items-center text-decoration-none #{active_link ? 'text-primary fw-semibold' : 'text-700'}" %>
+                              <% link_content = safe_join([
+                                content_tag(:span, '', class: "#{style[:icon]} text-#{style[:color]} me-2"),
+                                content_tag(:span, child.code, class: 'fs-10')
+                              ]) %>
+                              <%= link_to link_content, portfolio_path(child.code), class: link_classes %>
+                            </td>
+                            <td class="py-1 pe-0 text-end fs-11 text-500"><%= compact_indian_currency(child.current_value) %></td>
+                          </tr>
+                        <% end %>
+                      </tbody>
+                    </table>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <div class="content">
+          <div class="content-body mt-3">
+            <% flash.each do |type, message| %>
+              <% alert_class = type.to_s == 'notice' ? 'success' : 'danger' %>
+              <div class="alert alert-<%= alert_class %> alert-dismissible fade show" role="alert">
+                <%= message %>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            <% end %>
+            <%= yield %>
+          </div>
+
+          <footer class="py-4 mt-4 border-top">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 fs-10 text-500">
+              <span>&copy; <%= Time.current.year %> GoalWealth</span>
+              <span>Built for portfolio clarity</span>
+            </div>
+          </footer>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      localStorage.setItem('isNavbarVerticalCollapsed', 'false');
+      document.documentElement.classList.remove('navbar-vertical-collapsed', 'navbar-vertical-collapsed-hover');
+    </script>
+    <script src="/falcon/assets/js/config.js"></script>
+    <script src="/falcon/vendors/simplebar/simplebar.min.js"></script>
+    <script src="/falcon/vendors/popper/popper.min.js"></script>
+    <script src="/falcon/vendors/bootstrap/bootstrap.min.js"></script>
+    <script src="/falcon/vendors/anchorjs/anchor.min.js"></script>
+    <script src="/falcon/vendors/is/is.min.js"></script>
+    <script src="/falcon/vendors/echarts/echarts.min.js"></script>
+    <script src="/falcon/vendors/fontawesome/all.min.js"></script>
+    <script src="/falcon/vendors/lodash/lodash.min.js"></script>
+    <script src="/falcon/vendors/list.js/list.min.js"></script>
+    <script src="/falcon/assets/js/theme.js"></script>
+  </body>
+</html>

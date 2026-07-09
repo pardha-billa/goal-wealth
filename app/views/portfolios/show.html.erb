@@ -1,0 +1,548 @@
+<% return_pct = @summary.return_pct %>
+<% xirr_pct = @summary.xirr_pct %>
+<% target_progress = @summary.target_progress_pct %>
+<% target_progress_width = target_progress ? [[target_progress, 0].max, 100].min : 0 %>
+<% remaining_to_target = @summary.remaining_to_target %>
+<% largest_holding = @summary.largest_holding %>
+<% best_holding = @summary.best_holding %>
+<% weakest_holding = @summary.weakest_holding %>
+<% concentration_pct = largest_holding&.dig(:allocation_pct) %>
+<% concentration_class = concentration_pct && concentration_pct > 35 ? 'warning' : 'success' %>
+<% days_to_target = @goal.target_date ? (@goal.target_date - Date.current).to_i : nil %>
+
+<div class="content">
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="row g-3 align-items-center">
+        <div class="col-lg">
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+            <span class="badge bg-primary-subtle text-primary"><%= @goal.code %></span>
+            <span class="badge bg-success-subtle text-success"><%= @goal.status.humanize %></span>
+            <% if @goal.target_date.present? %>
+              <span class="badge bg-info-subtle text-info"><%= @goal.target_date.strftime('%d/%m/%Y') %></span>
+            <% end %>
+          </div>
+          <h2 class="mb-1"><%= @goal.name %> Portfolio</h2>
+          <p class="text-500 mb-0"><%= @goal.description.presence || 'Portfolio view with performance, concentration, allocation, holdings and cash-flow context.' %></p>
+        </div>
+        <div class="col-lg-auto">
+          <div class="d-flex flex-column flex-sm-row flex-lg-column align-items-sm-center align-items-lg-end gap-2">
+            <%= link_to '<span class="fas fa-arrow-left me-1"></span>Back to Home'.html_safe, root_path, class: 'btn btn-sm btn-falcon-default' %>
+            <% if @goal.target_amount.present? %>
+              <div class="text-sm-end">
+                <div class="fs-11 text-500">Target</div>
+                <div class="fw-semibold"><%= indian_currency(@goal.target_amount) %></div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <% if @goal.target_amount.present? %>
+        <div class="mt-4">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fs-10 text-600">Goal progress</span>
+            <span class="fs-10 fw-semibold"><%= portfolio_percent(target_progress) %></span>
+          </div>
+          <div class="progress bg-100" style="height: 0.5rem;">
+            <div class="progress-bar bg-primary" role="progressbar" style="width: <%= target_progress_width %>%;"></div>
+          </div>
+          <div class="d-flex flex-wrap justify-content-between gap-2 mt-2 fs-11 text-500">
+            <span><%= remaining_to_target && remaining_to_target.positive? ? "#{indian_currency(remaining_to_target)} remaining" : 'Target funded' %></span>
+            <% if days_to_target %>
+              <span><%= days_to_target.positive? ? "#{days_to_target} days left" : "#{days_to_target.abs} days past target date" %></span>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="card py-3 mb-3">
+    <div class="card-body py-3">
+      <% metrics = [
+        {
+          label: 'Current Value',
+          value: indian_currency(@summary.current_value),
+          detail: "Invested: #{indian_currency(@summary.total_invested)}",
+          delta: portfolio_percent(return_pct),
+          trend: portfolio_trend_icon(return_pct),
+          color: portfolio_trend_class(return_pct),
+          column_class: 'col-12 col-sm-6 col-md-4 border-200 border-bottom border-end pb-4'
+        },
+        {
+          label: '1D Portfolio Change',
+          value: indian_currency(@summary.one_day_portfolio_change),
+          detail: 'Tracked price-history holdings',
+          delta: portfolio_percent(@summary.one_day_portfolio_change_pct),
+          trend: portfolio_trend_icon(@summary.one_day_portfolio_change),
+          color: portfolio_trend_class(@summary.one_day_portfolio_change),
+          column_class: 'col-12 col-sm-6 col-md-4 border-200 border-bottom border-end-md pb-4 ps-3'
+        },
+        {
+          label: 'Gain / Loss',
+          value: indian_currency(@summary.absolute_return),
+          detail: "Return: #{portfolio_percent(return_pct)}",
+          delta: portfolio_percent(return_pct),
+          trend: portfolio_trend_icon(@summary.absolute_return),
+          color: portfolio_trend_class(@summary.absolute_return),
+          column_class: 'col-12 col-sm-6 col-md-4 border-200 border-bottom border-end border-end-md-0 pb-4 pt-4 pt-md-0 ps-md-3'
+        },
+        {
+          label: 'XIRR',
+          value: portfolio_percent(xirr_pct),
+          detail: 'Money-weighted annual return',
+          delta: portfolio_percent(xirr_pct),
+          trend: portfolio_trend_icon(xirr_pct),
+          color: portfolio_trend_class(xirr_pct),
+          column_class: 'col-12 col-sm-6 col-md-4 border-200 border-bottom border-bottom-md-0 border-end-md pt-4 pb-md-0 ps-3 ps-md-0'
+        },
+        {
+          label: 'Goal Progress',
+          value: target_progress ? portfolio_percent(target_progress) : 'No target',
+          detail: @goal.target_amount.present? ? indian_currency(@goal.target_amount) : "#{@summary.asset_count} holdings",
+          delta: remaining_to_target ? indian_currency(remaining_to_target) : "#{@summary.transaction_count} txns",
+          trend: nil,
+          color: 'info',
+          column_class: 'col-12 col-sm-6 col-md-4 border-200 border-bottom-md-0 border-end pt-4 pb-md-0 ps-md-3'
+        },
+        {
+          label: 'Concentration',
+          value: concentration_pct ? portfolio_percent(concentration_pct) : '—',
+          detail: largest_holding ? largest_holding[:asset].name.truncate(24) : 'No holdings',
+          delta: "#{@summary.asset_count} assets",
+          trend: nil,
+          color: concentration_class,
+          column_class: 'col-12 col-sm-6 col-md-4 pb-0 pt-4 ps-3'
+        }
+      ] %>
+
+      <div class="row g-0">
+        <% metrics.each do |metric| %>
+          <div class="<%= metric[:column_class] %>">
+            <h6 class="pb-1 text-700"><%= metric[:label] %></h6>
+            <p class="font-sans-serif lh-1 mb-1 fs-7"><%= metric[:value] %></p>
+            <div class="d-flex align-items-center">
+              <h6 class="fs-10 text-500 mb-0"><%= metric[:detail] %></h6>
+              <h6 class="fs-11 ps-3 mb-0 text-<%= metric[:color] %>">
+                <% if metric[:trend] %>
+                  <span class="me-1 fas fa-caret-<%= metric[:trend] %>"></span>
+                <% end %>
+                <%= metric[:delta] %>
+              </h6>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2">
+            <span class="fas fa-trophy text-success me-2"></span>
+            <h6 class="mb-0 text-700">Best Holding</h6>
+          </div>
+          <h5 class="mb-1"><%= best_holding ? best_holding[:asset].name.truncate(32) : '—' %></h5>
+          <p class="fs-10 mb-0 text-<%= portfolio_trend_class(best_holding&.dig(:return_pct)) %>">
+            <%= best_holding ? "XIRR #{portfolio_percent(best_holding[:xirr_pct])} | Return #{portfolio_percent(best_holding[:return_pct])} (#{compact_indian_currency(best_holding[:absolute_return])})" : 'No return data' %>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2">
+            <span class="fas fa-triangle-exclamation text-warning me-2"></span>
+            <h6 class="mb-0 text-700">Needs Attention</h6>
+          </div>
+          <h5 class="mb-1"><%= weakest_holding ? weakest_holding[:asset].name.truncate(32) : '—' %></h5>
+          <p class="fs-10 mb-0 text-<%= portfolio_trend_class(weakest_holding&.dig(:return_pct)) %>">
+            <%= weakest_holding ? "XIRR #{portfolio_percent(weakest_holding[:xirr_pct])} | Return #{portfolio_percent(weakest_holding[:return_pct])} (#{compact_indian_currency(weakest_holding[:absolute_return])})" : 'No return data' %>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2">
+            <span class="fas fa-chart-pie text-info me-2"></span>
+            <h6 class="mb-0 text-700">Largest Position</h6>
+          </div>
+          <h5 class="mb-1"><%= largest_holding ? largest_holding[:asset].name.truncate(32) : '—' %></h5>
+          <p class="fs-10 mb-0 text-<%= portfolio_trend_class(largest_holding&.dig(:return_pct)) %>">
+            <%= largest_holding ? "XIRR #{portfolio_percent(largest_holding[:xirr_pct])} | Return #{portfolio_percent(largest_holding[:return_pct])} (#{compact_indian_currency(largest_holding[:absolute_return])})" : 'No holdings' %>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-sm-6 col-xl-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2">
+            <span class="fas fa-scale-balanced text-primary me-2"></span>
+            <h6 class="mb-0 text-700">Return Split</h6>
+          </div>
+          <h5 class="mb-1"><%= @summary.profitable_holding_count %> positive</h5>
+          <p class="fs-10 mb-0 text-500"><%= @summary.loss_holding_count %> negative holdings</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-xl-8">
+      <div class="card" id="holdingsTable" data-list='{"valueNames":["asset","category","quantity","nav_price","value","allocation","invested","gain","return_pct","xirr"],"page":10,"pagination":true}'>
+        <div class="card-header d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 border-bottom py-2">
+          <div>
+            <h6 class="mb-0">Holdings</h6>
+            <p class="fs-11 text-500 mb-0"><%= @summary.asset_count %> assets sorted by XIRR</p>
+          </div>
+          <div class="input-group input-group-sm" style="max-width: 280px;">
+            <span class="input-group-text"><span class="fas fa-search"></span></span>
+            <input class="form-control search" type="search" placeholder="Search holdings" aria-label="Search holdings" />
+          </div>
+        </div>
+        <div id="holdings" class="card-body p-0">
+          <% if @summary.holdings.any? %>
+            <div class="table-responsive scrollbar">
+              <table class="table table-sm table-hover fs-10 mb-0 overflow-hidden">
+                <thead class="bg-200">
+                  <tr>
+                    <th class="text-900 sort pe-1 align-middle white-space-nowrap" data-sort="asset">Asset</th>
+                    <th class="text-900 sort pe-1 align-middle white-space-nowrap" data-sort="category">Category</th>
+                    <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end" data-sort="quantity">Units</th>
+                    <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end" data-sort="nav_price">NAV</th>
+                    <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end">1D Chg</th>
+                    <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end" data-sort="value">Value</th>
+                    <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end" data-sort="allocation">Allocation</th>
+                    <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end" data-sort="invested">Invested</th>
+                    <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end" data-sort="gain">P&amp;L</th>
+                    <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end" data-sort="return_pct">Return</th>
+                    <th class="text-900 sort pe-1 align-middle white-space-nowrap text-end" data-sort="xirr">XIRR</th>
+                  </tr>
+                </thead>
+                <tbody class="list">
+                  <% @summary.holdings.each do |holding| %>
+                    <tr class="border-bottom">
+                      <td class="asset align-middle">
+                        <strong><%= holding[:asset].name %></strong>
+                        <div class="fs-11 text-500"><%= holding[:asset].code %></div>
+                      </td>
+                      <td class="category align-middle"><span class="badge bg-100 text-700"><%= holding[:asset].asset_category.humanize %></span></td>
+                      <td class="quantity align-middle text-end"><%= holding[:quantity] ? number_with_precision(holding[:quantity], precision: 3, delimiter: ',', strip_insignificant_zeros: true) : '—' %></td>
+                      <td class="nav_price align-middle text-end"><%= holding[:latest_price] ? number_with_precision(holding[:latest_price], precision: 2, delimiter: ',') : '—' %></td>
+                      <td class="align-middle text-end fw-semibold text-<%= portfolio_trend_class(holding[:latest_nav_change]) %>">
+                        <% if holding[:latest_nav_change].present? %>
+                          <%= holding[:latest_nav_change] >= 0 ? '+' : '' %><%= number_with_precision(holding[:latest_nav_change], precision: 2, delimiter: ',') %>
+                          <div class="fs-11 text-500"><%= holding[:latest_nav_change_pct] ? portfolio_percent(holding[:latest_nav_change_pct]) : '—' %></div>
+                        <% else %>
+                          —
+                        <% end %>
+                      </td>
+                      <td class="value align-middle text-end fw-semibold"><%= indian_currency(holding[:market_value]) %></td>
+                      <td class="allocation align-middle text-end" style="min-width: 120px;">
+                        <div class="d-flex align-items-center justify-content-end gap-2">
+                          <div class="progress bg-100 flex-1" style="height: 0.375rem; min-width: 56px; max-width: 76px;">
+                            <div class="progress-bar bg-info" role="progressbar" style="width: <%= holding[:allocation_pct] || 0 %>%;"></div>
+                          </div>
+                          <span><%= portfolio_percent(holding[:allocation_pct]) %></span>
+                        </div>
+                      </td>
+                      <td class="invested align-middle text-end"><%= indian_currency(holding[:invested_amount]) %></td>
+                      <td class="gain align-middle text-end fw-semibold text-<%= portfolio_trend_class(holding[:absolute_return]) %>"><%= indian_currency(holding[:absolute_return]) %></td>
+                      <td class="return_pct align-middle text-end fw-semibold text-<%= portfolio_trend_class(holding[:return_pct]) %>"><%= portfolio_percent(holding[:return_pct]) %></td>
+                      <td class="xirr align-middle text-end fw-semibold text-<%= portfolio_trend_class(holding[:xirr_pct]) %>"><%= portfolio_percent(holding[:xirr_pct]) %></td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-center">
+              <button class="btn btn-sm btn-falcon-default me-1" type="button" title="Previous" data-list-pagination="prev"><span class="fas fa-chevron-left"></span></button>
+              <ul class="pagination mb-0"></ul>
+              <button class="btn btn-sm btn-falcon-default ms-1" type="button" title="Next" data-list-pagination="next"><span class="fas fa-chevron-right"></span></button>
+            </div>
+          <% else %>
+            <p class="fs-10 text-muted p-3 mb-0">No holdings available for this goal.</p>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="card mt-3">
+        <div class="card-header d-flex align-items-center justify-content-between border-bottom py-2">
+          <div>
+            <h6 class="mb-0">Mutual Fund NAV History</h6>
+            <p class="fs-11 text-500 mb-0">Latest 7 trading-day NAVs with one-day and seven-day changes</p>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <% nav_rows = @summary.mutual_fund_nav_rows %>
+          <% if nav_rows.any? %>
+            <div class="table-responsive scrollbar">
+              <table class="table table-sm table-hover fs-10 mb-0">
+                <thead class="bg-200">
+                  <tr>
+                    <th class="text-900">Scheme</th>
+                    <th class="text-900 text-end">Latest NAV</th>
+                    <th class="text-900 text-end">1D Chg</th>
+                    <th class="text-900 text-end">7D Chg</th>
+                    <th class="text-900">Last 7 Trading Days</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% nav_rows.each do |row| %>
+                    <tr class="border-bottom">
+                      <td class="align-middle">
+                        <strong><%= row[:asset].name %></strong>
+                        <div class="fs-11 text-500"><%= row[:asset].code %></div>
+                      </td>
+                      <td class="align-middle text-end fw-semibold"><%= number_with_precision(row[:latest_nav], precision: 2, delimiter: ',') %></td>
+                      <td class="align-middle text-end fw-semibold text-<%= portfolio_trend_class(row[:one_day_change]) %>">
+                        <% if row[:one_day_change].present? %>
+                          <%= row[:one_day_change] >= 0 ? '+' : '' %><%= number_with_precision(row[:one_day_change], precision: 2, delimiter: ',') %>
+                          <div class="fs-11 text-500"><%= row[:one_day_change_pct] ? portfolio_percent(row[:one_day_change_pct]) : '—' %></div>
+                        <% else %>
+                          —
+                        <% end %>
+                      </td>
+                      <td class="align-middle text-end fw-semibold text-<%= portfolio_trend_class(row[:seven_day_change]) %>">
+                        <% if row[:seven_day_change].present? %>
+                          <%= row[:seven_day_change] >= 0 ? '+' : '' %><%= number_with_precision(row[:seven_day_change], precision: 2, delimiter: ',') %>
+                          <div class="fs-11 text-500"><%= row[:seven_day_change_pct] ? portfolio_percent(row[:seven_day_change_pct]) : '—' %></div>
+                        <% else %>
+                          —
+                        <% end %>
+                      </td>
+                      <td class="align-middle">
+                        <div class="d-flex flex-wrap gap-1">
+                          <% row[:nav_history].each do |point| %>
+                            <span class="badge bg-100 text-700" title="<%= point[:date].strftime('%d/%m/%Y') %>"><%= number_with_precision(point[:price], precision: 2, delimiter: ',') %></span>
+                          <% end %>
+                        </div>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% else %>
+            <p class="fs-10 text-muted p-3 mb-0">No mutual fund NAV history available yet.</p>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="card mt-3">
+        <div class="card-header d-flex align-items-center justify-content-between border-bottom py-2">
+          <div>
+            <h6 class="mb-0">Recent Transactions</h6>
+            <p class="fs-11 text-500 mb-0">Portfolio activity by selected filter</p>
+          </div>
+        </div>
+        <div id="transactions" class="card-body p-0">
+          <% transaction_rows = @summary.recent_transactions(@summary.transaction_count) %>
+          <% if transaction_rows.any? %>
+            <div class="table-responsive">
+              <table class="table table-sm table-hover mb-0 align-middle">
+                <thead class="bg-200">
+                  <tr>
+                    <th class="fs-10 text-900">Date</th>
+                    <th class="fs-10 text-900">Asset</th>
+                    <th class="fs-10 text-900">Type</th>
+                    <th class="fs-10 text-900 text-end">Amount</th>
+                    <th class="fs-10 text-900 text-end">NAV</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% transaction_rows.each_with_index do |tx, index| %>
+                    <tr class="border-bottom transaction-row <%= index >= 7 ? 'd-none' : '' %>" data-transaction-date="<%= tx.transaction_date.iso8601 %>">
+                      <td class="fs-10"><%= tx.transaction_date.strftime('%d/%m/%Y') %></td>
+                      <td class="fs-10"><strong><%= tx.asset.name %></strong></td>
+                      <td class="fs-10"><span class="badge <%= %w[buy deposit interest].include?(tx.transaction_type) ? 'bg-success-subtle text-success' : 'bg-info-subtle text-info' %>"><%= tx.transaction_type.humanize %></span></td>
+                      <td class="fs-10 text-end fw-semibold"><%= indian_currency(tx.amount) %></td>
+                      <td class="fs-10 text-end"><%= tx.nav ? number_with_precision(tx.nav, precision: 2, delimiter: ',') : '—' %></td>
+                    </tr>
+                  <% end %>
+                  <tr class="transaction-empty-row d-none">
+                    <td class="fs-10 text-muted text-center py-3" colspan="5">No transactions in this period.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          <% else %>
+            <p class="fs-10 text-muted p-3 mb-0">No recent transactions.</p>
+          <% end %>
+        </div>
+        <% if transaction_rows&.any? %>
+          <div class="card-footer bg-body-tertiary py-2">
+            <div class="row flex-between-center g-2">
+              <div class="col-auto">
+                <select class="form-select form-select-sm transaction-select-menu" aria-label="Filter transactions by period">
+                  <option value="last_7" selected="selected">Last 7 transactions</option>
+                  <option value="week">Last 7 days</option>
+                  <option value="month">Last month</option>
+                  <option value="year">Last Year</option>
+                  <option value="all">All transactions</option>
+                </select>
+              </div>
+              <div class="col-auto">
+                <a class="btn btn-link btn-sm px-0 fw-medium" href="#transactions">
+                  <span class="transaction-count"><%= [transaction_rows.size, 7].min %></span> transactions<span class="fas fa-chevron-right ms-1 fs-11"></span>
+                </a>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="card mb-3">
+        <div class="card-header border-bottom py-2">
+          <h6 class="mb-0">Decision Snapshot</h6>
+        </div>
+        <div class="card-body p-3">
+          <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
+            <span class="text-500 fs-10">First Trade</span>
+            <strong class="fs-10"><%= @summary.start_date&.strftime('%d/%m/%Y') || '—' %></strong>
+          </div>
+          <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
+            <span class="text-500 fs-10">Last Trade</span>
+            <strong class="fs-10"><%= @summary.last_transaction_date&.strftime('%d/%m/%Y') || '—' %></strong>
+          </div>
+          <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
+            <span class="text-500 fs-10">Transactions</span>
+            <strong class="fs-10"><%= @summary.transaction_count %></strong>
+          </div>
+          <div class="d-flex justify-content-between mb-2 pb-2 border-bottom">
+            <span class="text-500 fs-10">Positive Holdings</span>
+            <strong class="fs-10 text-success"><%= @summary.profitable_holding_count %></strong>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span class="text-500 fs-10">Negative Holdings</span>
+            <strong class="fs-10 text-danger"><%= @summary.loss_holding_count %></strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header border-bottom py-2">
+          <h6 class="mb-0">Category Mix</h6>
+        </div>
+        <div class="card-body p-3">
+          <% if @summary.category_breakdown.any? %>
+            <% @summary.category_breakdown.each do |row| %>
+              <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="text-600 fs-10"><%= row[:asset_category].humanize %></span>
+                  <span class="fw-semibold fs-10"><%= portfolio_percent(row[:percentage]) %></span>
+                </div>
+                <div class="progress bg-100 rounded-pill" style="height: 0.5rem;">
+                  <div class="progress-bar bg-primary rounded-pill" role="progressbar" style="width: <%= row[:percentage] || 0 %>%;"></div>
+                </div>
+                <div class="fs-11 text-500 mt-1"><%= indian_currency(row[:value]) %></div>
+              </div>
+            <% end %>
+          <% else %>
+            <p class="fs-10 text-muted mb-0">No allocation data available.</p>
+          <% end %>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header border-bottom py-2">
+          <h6 class="mb-0">Cash Flow</h6>
+        </div>
+        <div class="card-body p-3">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <div class="fs-11 text-500">Money In</div>
+              <div class="fw-semibold text-success"><%= indian_currency(@summary.total_money_in) %></div>
+            </div>
+            <span class="fas fa-arrow-right text-300"></span>
+            <div class="text-end">
+              <div class="fs-11 text-500">Money Out</div>
+              <div class="fw-semibold text-info"><%= indian_currency(@summary.total_money_out) %></div>
+            </div>
+          </div>
+          <div class="bg-100 rounded-2 p-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="fs-10 text-600">Net Deployed</span>
+              <strong class="fs-10"><%= indian_currency(@summary.net_cash_flow) %></strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header border-bottom py-2">
+          <h6 class="mb-0">Top Holdings</h6>
+        </div>
+        <div class="card-body p-0">
+          <% if @summary.top_holdings.any? %>
+            <% @summary.top_holdings.each do |holding| %>
+              <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+                <div class="pe-3">
+                  <div class="fs-10 fw-semibold"><%= holding[:asset].name.truncate(32) %></div>
+                  <div class="fs-11 text-500"><%= portfolio_percent(holding[:allocation_pct]) %> allocation</div>
+                </div>
+                <div class="fs-10 fw-semibold text-end"><%= indian_currency(holding[:market_value]) %></div>
+              </div>
+            <% end %>
+          <% else %>
+            <p class="fs-10 text-muted p-3 mb-0">No holdings available.</p>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const transactionSelect = document.querySelector('.transaction-select-menu');
+    const transactionRows = Array.from(document.querySelectorAll('.transaction-row'));
+    const emptyRow = document.querySelector('.transaction-empty-row');
+    const countLabel = document.querySelector('.transaction-count');
+
+    if (!transactionSelect || transactionRows.length === 0) return;
+
+    const rangeStart = function(period) {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      if (period === 'week') start.setDate(start.getDate() - 7);
+      if (period === 'month') start.setMonth(start.getMonth() - 1);
+      if (period === 'year') start.setFullYear(start.getFullYear() - 1);
+
+      return start;
+    };
+
+    const applyTransactionFilter = function() {
+      const period = transactionSelect.value;
+      const start = rangeStart(period);
+      let visibleCount = 0;
+
+      transactionRows.forEach(function(row, rowIndex) {
+        const rowDate = new Date(`${row.dataset.transactionDate}T00:00:00`);
+        const visible = period === 'last_7' ? rowIndex < 7 : period === 'all' || rowDate >= start;
+
+        row.classList.toggle('d-none', !visible);
+        if (visible) visibleCount += 1;
+      });
+
+      if (emptyRow) emptyRow.classList.toggle('d-none', visibleCount > 0);
+      if (countLabel) countLabel.textContent = visibleCount;
+    };
+
+    transactionSelect.addEventListener('change', applyTransactionFilter);
+    applyTransactionFilter();
+  });
+</script>

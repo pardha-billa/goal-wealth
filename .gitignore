@@ -1,0 +1,47 @@
+# Ruby/Rails
+/.bundle
+/log/*
+/tmp/*
+!/tmp/.keep
+
+# SQLite (legacy)
+db/*.sqlite3
+db/*.sqlite3-*
+
+# Active Storage
+/storage/*
+!/storage/.keep
+
+# Assets
+/public/packs
+/public/packs-test
+/public/assets
+/Falcon-v3.14.0-and-v3.20.0
+# Gems
+/vendor/bundle
+
+# Environment
+.env
+.env.*
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Credentials (never commit these)
+config/master.key
+
+# Node
+node_modules/
+
+# PID files
+tmp/pids/*
+
+
+*.swp
+*.swo
+
+.byebug_history
