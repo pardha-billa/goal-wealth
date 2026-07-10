@@ -1,9 +1,9 @@
-<% inputs = @analysis[:inputs] %>
-<% segments = @analysis[:segments] %>
-<% ranked_segments = @analysis[:ranked_segments] %>
-<% overall = @analysis[:overall] %>
-<% checklist = @analysis[:checklist] %>
-<% deployment = @analysis[:deployment] %>
+<% inputs = @analysis[:inputs] || {} %>
+<% segments = @analysis[:segments] || {} %>
+<% ranked_segments = Array(@analysis[:ranked_segments]) %>
+<% overall = @analysis[:overall] || {} %>
+<% checklist = Array(@analysis[:checklist]) %>
+<% deployment = @analysis[:deployment] || {} %>
 
 <div class="content">
   <div class="card mb-3">
@@ -128,10 +128,14 @@
       <h6 class="mb-0">C. Where is relatively attractive now?</h6>
     </div>
     <div class="card-body">
-      <p class="mb-3"><strong>Most favourable:</strong> <%= ranked_segments[0][:label] %></p>
-      <p class="mb-3"><strong>Moderately favourable:</strong> <%= ranked_segments[1][:label] %></p>
-      <p class="mb-3"><strong>Selective:</strong> <%= ranked_segments[2][:label] %></p>
-      <p class="mb-0"><strong>Unfavourable for fresh lumpsum:</strong> <%= ranked_segments[-1][:label] %></p>
+      <% if ranked_segments.any? %>
+        <p class="mb-3"><strong>Most favourable:</strong> <%= ranked_segments[0][:label] %></p>
+        <p class="mb-3"><strong>Moderately favourable:</strong> <%= ranked_segments[1]&.[](:label).presence || "Unavailable" %></p>
+        <p class="mb-3"><strong>Selective:</strong> <%= ranked_segments[2]&.[](:label).presence || "Unavailable" %></p>
+        <p class="mb-0"><strong>Unfavourable for fresh lumpsum:</strong> <%= ranked_segments[-1][:label] %></p>
+      <% else %>
+        <p class="mb-0 text-500">No ranked segments available.</p>
+      <% end %>
     </div>
   </div>
 
@@ -172,7 +176,7 @@
         </div>
       </div>
       <div class="row g-3">
-        <% deployment[:schedule].each do |step| %>
+        <% Array(deployment[:schedule]).each do |step| %>
           <div class="col-sm-6 col-lg-3">
             <div class="border rounded-2 p-3 h-100">
               <div class="fs-11 text-500 text-uppercase mb-1"><%= step[:label] %></div>
@@ -181,9 +185,11 @@
           </div>
         <% end %>
       </div>
-      <div class="alert alert-light border mt-4 mb-0">
-        Based on current valuation, earnings and risk indicators, <strong><%= ranked_segments[0][:label] %></strong> currently offers the better risk reward profile, but deployment should still follow the readiness checklist.
-      </div>
+      <% if ranked_segments.any? %>
+        <div class="alert alert-light border mt-4 mb-0">
+          Based on current valuation, earnings and risk indicators, <strong><%= ranked_segments[0][:label] %></strong> currently offers the better risk reward profile, but deployment should still follow the readiness checklist.
+        </div>
+      <% end %>
     </div>
   </div>
 </div>
