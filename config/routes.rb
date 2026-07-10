@@ -3,6 +3,7 @@ Rails.application.routes.draw do
   mount RailsAdmin::Engine => '/admin', as: 'rails_admin'
 
   get 'home', to: 'home#index', as: :home
+  resource :market_opportunity, path: 'market-opportunity', only: :show
   root 'sessions#new'
   post 'dashboard/update-nav', to: 'home#update_nav', as: :update_dashboard_nav
   get 'portfolio/:goal_identifier', to: 'portfolios#show', as: :portfolio

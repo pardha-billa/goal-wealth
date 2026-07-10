@@ -21,6 +21,7 @@
     </div>
     <div class="col-lg-4 mt-3 mt-lg-0">
       <div class="d-flex flex-wrap justify-content-lg-end gap-2">
+        <%= link_to '<span class="fas fa-chart-line me-1"></span>Market Opportunity'.html_safe, market_opportunity_path, class: 'btn btn-sm btn-falcon-default' %>
         <%= button_to 'Update NAVs'.html_safe, update_dashboard_nav_path, method: :post, class: 'btn btn-sm btn-primary', form: { class: 'd-inline' } %>
         <% if current_user&.admin? %>
           <%= link_to '<span class="fas fa-gear me-1"></span>Admin Panel'.html_safe, rails_admin_path, class: 'btn btn-sm btn-falcon-default' %>

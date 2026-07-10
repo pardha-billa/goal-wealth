@@ -12,6 +12,8 @@ gem "rails-html-sanitizer", "~> 1.4.4"
 gem 'puma', '~> 5.0'
 gem 'bootsnap', '~> 1.17.0', require: false
 gem 'rails_admin', '~> 3.1'
+gem 'openai', require: false
+gem 'pdf-reader'
 gem 'sass-rails', '>= 6'
 gem 'tzinfo-data', platforms: [:mingw, :mswin, :x64_mingw, :jruby]
 

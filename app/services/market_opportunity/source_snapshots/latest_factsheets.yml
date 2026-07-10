@@ -1,0 +1,38 @@
+as_of: "June 30, 2026"
+segments:
+  nifty_50:
+    label: "Nifty 50"
+    source_url: "https://www.niftyindices.com/Factsheet/ind_nifty50.pdf"
+    pe: 20.58
+    pb: 1.24
+    dividend_yield: 3.12
+    return_1y: 9.99
+    return_3y: null
+    return_5y: 12.41
+  nifty_next_50:
+    label: "Nifty Next 50"
+    source_url: "https://nsearchives.nseindia.com/content/indices/ind_next50.pdf"
+    pe: 18.67
+    pb: 1.23
+    dividend_yield: 3.47
+    return_1y: 14.19
+    return_3y: null
+    return_5y: null
+  nifty_midcap_150:
+    label: "Nifty Midcap 150"
+    source_url: "https://nsearchives.nseindia.com/content/indices/ind_Nifty_Midcap_150.pdf"
+    pe: 29.17
+    pb: 0.66
+    dividend_yield: 4.78
+    return_1y: 18.29
+    return_3y: null
+    return_5y: 17.17
+  nifty_smallcap_250:
+    label: "Nifty Smallcap 250"
+    source_url: "https://nsearchives.nseindia.com/content/indices/ind_Nifty_Smallcap_250.pdf"
+    pe: 35.52
+    pb: 0.66
+    dividend_yield: 3.74
+    return_1y: 16.81
+    return_3y: null
+    return_5y: 15.79
