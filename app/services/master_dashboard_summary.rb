@@ -41,6 +41,22 @@ class MasterDashboardSummary
     keyword_init: true
   )
 
+  InvestmentPeriod = Struct.new(
+    :key,
+    :label,
+    :range_label,
+    :start_date,
+    :end_date,
+    keyword_init: true
+  )
+
+  InvestmentTrackerRow = Struct.new(
+    :snapshot,
+    :amounts,
+    :children,
+    keyword_init: true
+  )
+
   def initialize(codes = DEFAULT_CODES)
     @codes = codes
   end
@@ -89,6 +105,59 @@ class MasterDashboardSummary
 
   def total_transaction_count
     snapshots.sum(&:transaction_count)
+  end
+
+  def investment_periods
+    @investment_periods ||= begin
+      today = Date.current
+      this_month_start = today.beginning_of_month
+      last_month_start = this_month_start.prev_month
+      last_month_end = this_month_start - 1.day
+
+      [
+        InvestmentPeriod.new(
+          key: :this_month,
+          label: 'This month',
+          range_label: date_range_label(this_month_start, today),
+          start_date: this_month_start,
+          end_date: today
+        ),
+        InvestmentPeriod.new(
+          key: :last_month,
+          label: 'Last month',
+          range_label: date_range_label(last_month_start, last_month_end),
+          start_date: last_month_start,
+          end_date: last_month_end
+        ),
+        InvestmentPeriod.new(
+          key: :this_year,
+          label: 'This year',
+          range_label: date_range_label(today.beginning_of_year, today),
+          start_date: today.beginning_of_year,
+          end_date: today
+        )
+      ]
+    end
+  end
+
+  def investment_tracker
+    periods = investment_periods
+
+    snapshots.map do |snapshot|
+      child_rows = snapshot.children.map do |child|
+        InvestmentTrackerRow.new(
+          snapshot: child,
+          amounts: investment_amounts_for([child.goal.id], periods),
+          children: []
+        )
+      end
+
+      InvestmentTrackerRow.new(
+        snapshot: snapshot,
+        amounts: sum_child_amounts(child_rows, periods),
+        children: child_rows
+      )
+    end
   end
 
   private
@@ -175,5 +244,28 @@ class MasterDashboardSummary
 
   def display_name(goal)
     DISPLAY_NAMES.fetch(goal.code, goal.name)
+  end
+
+  def investment_amounts_for(goal_ids, periods)
+    periods.index_with do |period|
+      Transaction.where(financial_goal_id: goal_ids, transaction_type: investment_transaction_types)
+                 .where(transaction_date: period.start_date..period.end_date)
+                 .sum(:amount)
+                 .to_d
+    end
+  end
+
+  def sum_child_amounts(child_rows, periods)
+    periods.index_with do |period|
+      child_rows.sum { |row| row.amounts[period].to_d }
+    end
+  end
+
+  def investment_transaction_types
+    Transaction.transaction_types.values_at('buy', 'deposit')
+  end
+
+  def date_range_label(start_date, end_date)
+    "#{start_date.strftime('%d %b')} - #{end_date.strftime('%d %b')}"
   end
 end

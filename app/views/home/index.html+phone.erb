@@ -2,6 +2,8 @@
 <% total_progress = @dashboard.total_progress_pct %>
 <% total_progress_width = total_progress ? [[total_progress, 0].max, 100].min : 0 %>
 <% total_remaining = @dashboard.total_remaining_to_target %>
+<% investment_periods = @dashboard.investment_periods %>
+<% investment_tracker = @dashboard.investment_tracker %>
 <% goal_styles = {
   'RET' => { icon: 'fas fa-chart-line', color: 'primary' },
   'EDU' => { icon: 'fas fa-graduation-cap', color: 'warning' },
@@ -18,8 +20,7 @@
     <h2 class="mobile-title">GoalWealth</h2>
     <p class="mobile-subtitle">Portfolio snapshot for your goals.</p>
 
-    <div class="mobile-actions mt-3">
-      <%= link_to '<span class="fas fa-chart-line me-1"></span>Market Opportunity'.html_safe, market_opportunity_path, class: 'btn btn-sm btn-falcon-default' %>
+    <div class="mobile-actions mt-2">
       <%= button_to 'Update NAVs'.html_safe, update_dashboard_nav_path, method: :post, class: 'btn btn-sm btn-primary' %>
     </div>
   </section>
@@ -61,6 +62,74 @@
   </section>
 
   <section class="mobile-card">
+    <div class="mobile-section-title">Investment Tracker</div>
+    <div class="mobile-card-body">
+      <div class="mobile-period-grid mb-2">
+        <% investment_periods.each do |period| %>
+          <div class="mobile-period">
+            <div class="mobile-kpi-label"><%= period.label %></div>
+            <div class="mobile-period-range"><%= period.range_label %></div>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="mobile-list mobile-investment-list">
+        <% investment_tracker.each do |row| %>
+          <% snapshot = row.snapshot %>
+          <% style = goal_styles.fetch(snapshot.code, { icon: 'fas fa-chart-line', color: 'primary' }) %>
+          <div class="mobile-investment-group">
+            <div class="mobile-investment-parent">
+              <div class="mobile-row">
+                <div class="mobile-row-main">
+                  <div class="mobile-list-title">
+                    <span class="<%= style[:icon] %> text-<%= style[:color] %> me-2"></span><%= snapshot.name %>
+                  </div>
+                  <div class="mobile-meta"><%= snapshot.code %></div>
+                </div>
+                <div class="mobile-row-value">
+                  <div class="fw-semibold"><%= compact_indian_currency(row.amounts[investment_periods.first]) %></div>
+                  <div class="mobile-meta">this month</div>
+                </div>
+              </div>
+              <div class="mobile-investment-amounts">
+                <% investment_periods.each do |period| %>
+                  <div>
+                    <div class="mobile-kpi-label"><%= period.label %></div>
+                    <div class="mobile-investment-value"><%= compact_indian_currency(row.amounts[period]) %></div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+
+            <% if row.children.size > 1 %>
+              <div class="mobile-child-list mobile-investment-children">
+                <% row.children.each do |child_row| %>
+                  <% child = child_row.snapshot %>
+                  <a href="<%= portfolio_path(child.code) %>" class="mobile-child-item text-decoration-none text-900">
+                    <div class="mobile-row">
+                      <div class="mobile-row-main">
+                        <div class="mobile-child-title"><%= child.code %></div>
+                        <div class="mobile-meta"><%= child.name %></div>
+                      </div>
+                      <div class="mobile-row-value">
+                        <div class="fw-semibold"><%= compact_indian_currency(child_row.amounts[investment_periods.first]) %></div>
+                        <div class="mobile-meta">
+                          <%= compact_indian_currency(child_row.amounts[investment_periods.second]) %> last
+                          | <%= compact_indian_currency(child_row.amounts[investment_periods.third]) %> YTD
+                        </div>
+                      </div>
+                    </div>
+                  </a>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </section>
+
+  <section class="mobile-card">
     <div class="mobile-section-title">Goals</div>
     <div class="mobile-list">
       <% snapshots.each do |snapshot| %>
@@ -97,6 +166,25 @@
             </div>
           <% end %>
         </a>
+
+        <% if snapshot.children.size > 1 %>
+          <div class="mobile-child-list">
+            <% snapshot.children.each do |child| %>
+              <a href="<%= portfolio_path(child.code) %>" class="mobile-child-item text-decoration-none text-900">
+                <div class="mobile-row">
+                  <div class="mobile-row-main">
+                    <div class="mobile-child-title"><%= child.code %></div>
+                    <div class="mobile-meta"><%= child.name %> | <%= child.asset_count %> assets</div>
+                  </div>
+                  <div class="mobile-row-value">
+                    <div class="fw-semibold"><%= compact_indian_currency(child.current_value) %></div>
+                    <div class="fs-11 text-<%= portfolio_trend_class(child.return_pct) %>"><%= portfolio_percent(child.return_pct) %></div>
+                  </div>
+                </div>
+              </a>
+            <% end %>
+          </div>
+        <% end %>
       <% end %>
     </div>
   </section>
