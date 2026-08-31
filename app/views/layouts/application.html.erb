@@ -3,10 +3,18 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="GoalWealth">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <title>GoalWealth</title>
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/goalwealth-icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/goalwealth-icon-512.png">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,500,600,700|Poppins:300,400,500,600,700,800,900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/falcon/vendors/simplebar/simplebar.min.css">
@@ -122,5 +130,12 @@
     <script src="/falcon/vendors/lodash/lodash.min.js"></script>
     <script src="/falcon/vendors/list.js/list.min.js"></script>
     <script src="/falcon/assets/js/theme.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/service-worker.js').catch(function() {});
+        });
+      }
+    </script>
   </body>
 </html>

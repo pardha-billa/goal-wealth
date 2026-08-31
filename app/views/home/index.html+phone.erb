@@ -1,0 +1,110 @@
+<% snapshots = @dashboard.snapshots %>
+<% total_progress = @dashboard.total_progress_pct %>
+<% total_progress_width = total_progress ? [[total_progress, 0].max, 100].min : 0 %>
+<% total_remaining = @dashboard.total_remaining_to_target %>
+<% goal_styles = {
+  'RET' => { icon: 'fas fa-chart-line', color: 'primary' },
+  'EDU' => { icon: 'fas fa-graduation-cap', color: 'warning' },
+  'Emergency' => { icon: 'fas fa-shield-alt', color: 'success' },
+  'SNET' => { icon: 'fas fa-umbrella', color: 'info' }
+} %>
+
+<div class="mobile-page">
+  <section class="mobile-hero">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+      <span class="badge bg-primary-subtle text-primary">Master</span>
+      <span class="badge bg-info-subtle text-info">NAV <%= @last_nav_date ? @last_nav_date.strftime('%d/%m/%Y') : 'NA' %></span>
+    </div>
+    <h2 class="mobile-title">GoalWealth</h2>
+    <p class="mobile-subtitle">Portfolio snapshot for your goals.</p>
+
+    <div class="mobile-actions mt-3">
+      <%= link_to '<span class="fas fa-chart-line me-1"></span>Market Opportunity'.html_safe, market_opportunity_path, class: 'btn btn-sm btn-falcon-default' %>
+      <%= button_to 'Update NAVs'.html_safe, update_dashboard_nav_path, method: :post, class: 'btn btn-sm btn-primary' %>
+    </div>
+  </section>
+
+  <section class="mobile-card">
+    <div class="mobile-card-body">
+      <div class="mobile-kpi-grid">
+        <div class="mobile-kpi">
+          <div class="mobile-kpi-label">Current</div>
+          <div class="mobile-kpi-value"><%= indian_currency(@dashboard.total_current_value) %></div>
+        </div>
+        <div class="mobile-kpi">
+          <div class="mobile-kpi-label">Invested</div>
+          <div class="mobile-kpi-value"><%= indian_currency(@dashboard.total_invested) %></div>
+        </div>
+        <div class="mobile-kpi">
+          <div class="mobile-kpi-label">Gain/Loss</div>
+          <div class="mobile-kpi-value text-<%= portfolio_trend_class(@dashboard.total_absolute_return) %>"><%= indian_currency(@dashboard.total_absolute_return) %></div>
+        </div>
+        <div class="mobile-kpi">
+          <div class="mobile-kpi-label">Return</div>
+          <div class="mobile-kpi-value text-<%= portfolio_trend_class(@dashboard.total_return_pct) %>"><%= portfolio_percent(@dashboard.total_return_pct) %></div>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="fs-10 text-600">Goal coverage</span>
+          <span class="fs-10 fw-semibold"><%= portfolio_percent(total_progress) %></span>
+        </div>
+        <div class="progress bg-100 mobile-progress">
+          <div class="progress-bar bg-primary" role="progressbar" style="width: <%= total_progress_width %>%;"></div>
+        </div>
+        <div class="fs-11 text-500 mt-2">
+          <%= total_remaining && total_remaining.positive? ? "#{compact_indian_currency(total_remaining)} left" : "#{compact_indian_currency(total_remaining.to_d.abs)} surplus" %>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="mobile-card">
+    <div class="mobile-section-title">Goals</div>
+    <div class="mobile-list">
+      <% snapshots.each do |snapshot| %>
+        <% style = goal_styles.fetch(snapshot.code, { icon: 'fas fa-chart-line', color: 'primary' }) %>
+        <% progress_width = snapshot.progress_pct ? [[snapshot.progress_pct, 0].max, 100].min : 0 %>
+        <% remaining = snapshot.remaining_to_target %>
+        <a href="<%= portfolio_path(snapshot.code) %>" class="mobile-list-item text-decoration-none text-900">
+          <div class="mobile-row">
+            <div class="mobile-row-main">
+              <div class="mobile-list-title">
+                <span class="<%= style[:icon] %> text-<%= style[:color] %> me-2"></span><%= snapshot.name %>
+              </div>
+              <div class="mobile-meta">
+                <%= snapshot.code %> | <%= snapshot.asset_count %> assets | <%= portfolio_percent(snapshot.return_pct) %>
+              </div>
+            </div>
+            <div class="mobile-row-value">
+              <div class="fw-semibold"><%= compact_indian_currency(snapshot.current_value) %></div>
+              <div class="fs-11 text-<%= portfolio_trend_class(snapshot.absolute_return) %>"><%= compact_indian_currency(snapshot.absolute_return) %></div>
+            </div>
+          </div>
+
+          <% if snapshot.target_amount.present? %>
+            <div class="mt-2">
+              <div class="progress bg-100 mobile-progress">
+                <div class="progress-bar bg-<%= style[:color] %>" role="progressbar" style="width: <%= progress_width %>%;"></div>
+              </div>
+              <div class="mobile-meta">
+                <%= portfolio_percent(snapshot.progress_pct) %> funded
+                <% if remaining %>
+                  | <%= remaining.positive? ? "#{compact_indian_currency(remaining)} left" : "#{compact_indian_currency(remaining.to_d.abs)} surplus" %>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </a>
+      <% end %>
+    </div>
+  </section>
+
+  <div class="mobile-actions">
+    <% if current_user&.admin? %>
+      <%= link_to '<span class="fas fa-gear me-1"></span>Admin Panel'.html_safe, rails_admin_path, class: 'btn btn-sm btn-falcon-default' %>
+    <% end %>
+    <%= button_to 'Sign out', session_path, method: :delete, class: 'btn btn-sm btn-falcon-default' %>
+  </div>
+</div>

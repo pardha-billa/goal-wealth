@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SESSION="reporter"
+PROJECT="$HOME/Documents/Records/Finance/GW"
+
+if [[ ! -d "$PROJECT" ]]; then
+    echo "Project directory not found: $PROJECT"
+    exit 1
+fi
+
+# Reattach if the session already exists
+if tmux has-session -t "$SESSION" 2>/dev/null; then
+    exec tmux attach-session -t "$SESSION"
+fi
+
+# Create Development window
+NVIM_PANE=$(
+    tmux new-session \
+        -d \
+        -P \
+        -F '#{pane_id}' \
+        -s "$SESSION" \
+        -n Development \
+        -c "$PROJECT"
+)
+
+# Right column uses 20% width
+CODEX_PANE=$(
+    tmux split-window \
+        -h \
+        -p 20 \
+        -P \
+        -F '#{pane_id}' \
+        -t "$NVIM_PANE" \
+        -c "$PROJECT"
+)
+
+# Bottom-right pane uses 30% height
+# Codex remains top-right with 70%
+COMMAND_PANE=$(
+    tmux split-window \
+        -v \
+        -p 30 \
+        -P \
+        -F '#{pane_id}' \
+        -t "$CODEX_PANE" \
+        -c "$PROJECT"
+)
+
+# Start Neovim and Codex
+tmux send-keys -t "$NVIM_PANE" "nvim ." C-m
+tmux send-keys -t "$CODEX_PANE" "codex" C-m
+
+# COMMAND_PANE intentionally stays at the project shell.
+# Use it for:
+#   bin/rails server
+#   bin/rails console
+#   bin/rails routes
+#   bundle exec rake ...
+
+# Create second window and leave it at the project shell
+tmux new-window \
+    -t "$SESSION" \
+    -n Console \
+    -c "$PROJECT"
+
+# Return to Development and focus Neovim
+tmux select-window -t "$SESSION:Development"
+tmux select-pane -t "$NVIM_PANE"
+
+exec tmux attach-session -t "$SESSION"
+
