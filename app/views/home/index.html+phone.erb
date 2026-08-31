@@ -3,7 +3,7 @@
 <% total_progress_width = total_progress ? [[total_progress, 0].max, 100].min : 0 %>
 <% total_remaining = @dashboard.total_remaining_to_target %>
 <% investment_periods = @dashboard.investment_periods %>
-<% investment_tracker = @dashboard.investment_tracker %>
+<% investment_tracker = @dashboard.investment_tracker.select { |row| %w[RET EDU].include?(row.snapshot.code) } %>
 <% goal_styles = {
   'RET' => { icon: 'fas fa-chart-line', color: 'primary' },
   'EDU' => { icon: 'fas fa-graduation-cap', color: 'warning' },
@@ -64,6 +64,7 @@
   <section class="mobile-card">
     <div class="mobile-section-title">Investment Tracker</div>
     <div class="mobile-card-body">
+      <div class="mobile-meta mb-2">Buy and deposit transactions only.</div>
       <div class="mobile-period-grid mb-2">
         <% investment_periods.each do |period| %>
           <div class="mobile-period">
@@ -109,7 +110,7 @@
                     <div class="mobile-row">
                       <div class="mobile-row-main">
                         <div class="mobile-child-title"><%= child.code %></div>
-                        <div class="mobile-meta"><%= child.name %></div>
+                        <div class="mobile-meta"><%= child.name %> | XIRR <%= portfolio_percent(child.xirr_pct) %></div>
                       </div>
                       <div class="mobile-row-value">
                         <div class="fw-semibold"><%= compact_indian_currency(child_row.amounts[investment_periods.first]) %></div>
@@ -143,7 +144,7 @@
                 <span class="<%= style[:icon] %> text-<%= style[:color] %> me-2"></span><%= snapshot.name %>
               </div>
               <div class="mobile-meta">
-                <%= snapshot.code %> | <%= snapshot.asset_count %> assets | <%= portfolio_percent(snapshot.return_pct) %>
+                <%= snapshot.code %> | <%= snapshot.asset_count %> assets | Return <%= portfolio_percent(snapshot.return_pct) %> | XIRR <%= portfolio_percent(snapshot.xirr_pct) %>
               </div>
             </div>
             <div class="mobile-row-value">
@@ -174,7 +175,7 @@
                 <div class="mobile-row">
                   <div class="mobile-row-main">
                     <div class="mobile-child-title"><%= child.code %></div>
-                    <div class="mobile-meta"><%= child.name %> | <%= child.asset_count %> assets</div>
+                    <div class="mobile-meta"><%= child.name %> | Return <%= portfolio_percent(child.return_pct) %> | XIRR <%= portfolio_percent(child.xirr_pct) %></div>
                   </div>
                   <div class="mobile-row-value">
                     <div class="fw-semibold"><%= compact_indian_currency(child.current_value) %></div>
