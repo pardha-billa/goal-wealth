@@ -1,10 +1,17 @@
 class HomeController < ApplicationController
-  skip_before_action :load_portfolio_links, only: :update_nav
-  skip_before_action :authenticate_user!, only: :index
-  after_action :allow_iframe_embedding, only: :index
+  layout 'embed', only: :embed
+
+  skip_before_action :load_portfolio_links, only: %i[update_nav embed]
+  skip_before_action :authenticate_user!, only: %i[index embed]
+  after_action :allow_iframe_embedding, only: %i[index embed]
 
   def index
     @dashboard = @portfolio_link_dashboard || MasterDashboardSummary.new
+    @last_nav_date = last_nav_date
+  end
+
+  def embed
+    @dashboard = MasterDashboardSummary.new
     @last_nav_date = last_nav_date
   end
 

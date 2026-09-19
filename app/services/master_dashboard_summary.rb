@@ -107,6 +107,10 @@ class MasterDashboardSummary
     snapshots.sum(&:transaction_count)
   end
 
+  def overall_xirr_pct
+    weighted_xirr_pct(snapshots)
+  end
+
   def investment_periods
     @investment_periods ||= begin
       today = Date.current

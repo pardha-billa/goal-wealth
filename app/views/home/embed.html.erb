@@ -1,0 +1,107 @@
+<%
+  snapshots = @dashboard.snapshots
+  total_progress = @dashboard.total_progress_pct
+  total_progress_width = total_progress ? [[total_progress, 0].max, 100].min : 0
+  total_remaining = @dashboard.total_remaining_to_target
+
+  goal_styles = {
+    'RET' => { icon: '📈', series: '--series-1' },
+    'EDU' => { icon: '🎓', series: '--series-2' },
+    'Emergency' => { icon: '🛡️', series: '--series-3' },
+    'SNET' => { icon: '☔', series: '--series-4' }
+  }
+
+  status_color = ->(value) { value.nil? ? 'var(--text-muted)' : (value.to_d >= 0 ? 'var(--good)' : 'var(--critical)') }
+  status_arrow = ->(value) { value.nil? ? '' : (value.to_d >= 0 ? '▲ ' : '▼ ') }
+%>
+
+<style>
+  .ew-header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .ew-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.02em; text-transform: uppercase; }
+  .ew-nav-date { font-size: 12px; color: var(--text-muted); }
+
+  .ew-hero-card { background: var(--surface-card); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; }
+  .ew-hero-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+  .ew-hero-value { font-size: 40px; font-weight: 600; line-height: 1.1; margin-bottom: 6px; }
+  .ew-hero-delta { font-size: 13px; font-weight: 500; }
+
+  .ew-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .ew-tile { background: var(--surface-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .ew-tile-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+  .ew-tile-value { font-size: 18px; font-weight: 600; margin-bottom: 2px; }
+  .ew-tile-delta { font-size: 11px; font-weight: 500; }
+
+  .ew-meter-track { height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--series-1) 20%, var(--surface-card)); overflow: hidden; margin-top: 8px; }
+  .ew-meter-fill { height: 100%; background: var(--series-1); border-radius: 3px; }
+
+  .ew-goals { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+  .ew-goal-card { border-radius: 12px; padding: 14px 16px; border: 1px solid var(--border); }
+  .ew-goal-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .ew-goal-icon { font-size: 16px; }
+  .ew-goal-name { font-size: 13px; font-weight: 600; }
+  .ew-goal-value { font-size: 20px; font-weight: 600; margin-bottom: 2px; }
+  .ew-goal-return { font-size: 12px; font-weight: 500; margin-bottom: 10px; }
+  .ew-goal-stats { display: flex; gap: 14px; font-size: 11px; color: var(--text-secondary); border-top: 1px solid var(--border); padding-top: 8px; }
+  .ew-goal-stats strong { display: block; color: var(--text-primary); font-size: 12px; font-weight: 600; }
+
+  .ew-footer { margin-top: 12px; font-size: 10px; color: var(--text-muted); text-align: right; }
+</style>
+
+<div class="ew-header">
+  <span class="ew-title">GoalWealth · Net Worth</span>
+  <span class="ew-nav-date">Last NAV: <%= @last_nav_date ? @last_nav_date.strftime('%d %b %Y') : 'Not available' %></span>
+</div>
+
+<div class="ew-hero-card">
+  <div class="ew-hero-label">Total portfolio value</div>
+  <div class="ew-hero-value"><%= indian_currency(@dashboard.total_current_value) %></div>
+  <div class="ew-hero-delta" style="color: <%= status_color.call(@dashboard.total_absolute_return) %>;">
+    <%= status_arrow.call(@dashboard.total_absolute_return) %><%= compact_indian_currency(@dashboard.total_absolute_return) %> (<%= portfolio_percent(@dashboard.total_return_pct) %> overall return)
+  </div>
+</div>
+
+<div class="ew-tiles">
+  <div class="ew-tile">
+    <div class="ew-tile-label">Invested</div>
+    <div class="ew-tile-value"><%= compact_indian_currency(@dashboard.total_invested) %></div>
+    <div class="ew-tile-delta" style="color: var(--text-muted);"><%= @dashboard.total_asset_count %> assets</div>
+  </div>
+  <div class="ew-tile">
+    <div class="ew-tile-label">Overall XIRR</div>
+    <div class="ew-tile-value" style="color: <%= status_color.call(@dashboard.overall_xirr_pct) %>;"><%= portfolio_percent(@dashboard.overall_xirr_pct) %></div>
+    <div class="ew-tile-delta" style="color: var(--text-muted);">Value-weighted</div>
+  </div>
+  <div class="ew-tile">
+    <div class="ew-tile-label">Target progress</div>
+    <div class="ew-tile-value"><%= portfolio_percent(total_progress) %></div>
+    <div class="ew-meter-track"><div class="ew-meter-fill" style="width: <%= total_progress_width %>%;"></div></div>
+  </div>
+  <div class="ew-tile">
+    <div class="ew-tile-label"><%= total_remaining && total_remaining.positive? ? 'Remaining to target' : 'Surplus over target' %></div>
+    <div class="ew-tile-value"><%= compact_indian_currency(total_remaining.to_d.abs) %></div>
+    <div class="ew-tile-delta" style="color: var(--text-muted);">of <%= compact_indian_currency(@dashboard.total_target_amount) %> target</div>
+  </div>
+</div>
+
+<div class="ew-goals">
+  <% snapshots.each do |snapshot| %>
+    <% style = goal_styles.fetch(snapshot.code, { icon: '📊', series: '--series-1' }) %>
+    <div class="ew-goal-card" style="background: color-mix(in srgb, var(<%= style[:series] %>) 14%, var(--surface-card)); border-color: color-mix(in srgb, var(<%= style[:series] %>) 35%, transparent);">
+      <div class="ew-goal-head">
+        <span class="ew-goal-icon"><%= style[:icon] %></span>
+        <span class="ew-goal-name"><%= snapshot.name %></span>
+      </div>
+      <div class="ew-goal-value"><%= indian_currency(snapshot.current_value) %></div>
+      <div class="ew-goal-return" style="color: <%= status_color.call(snapshot.absolute_return) %>;">
+        <%= status_arrow.call(snapshot.absolute_return) %><%= compact_indian_currency(snapshot.absolute_return) %> (<%= portfolio_percent(snapshot.return_pct) %>)
+      </div>
+      <div class="ew-goal-stats">
+        <div><strong><%= portfolio_percent(snapshot.xirr_pct) %></strong>XIRR</div>
+        <div><strong style="color: <%= status_color.call(snapshot.one_day_change) %>;"><%= snapshot.one_day_change.present? ? compact_indian_currency(snapshot.one_day_change) : '—' %></strong>1D change</div>
+        <div><strong><%= snapshot.asset_count %></strong>Assets</div>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<div class="ew-footer">Refreshes every 10 min · goal-wealth.onrender.com</div>
