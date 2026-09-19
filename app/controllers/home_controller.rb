@@ -1,6 +1,7 @@
 class HomeController < ApplicationController
   skip_before_action :load_portfolio_links, only: :update_nav
   skip_before_action :authenticate_user!, only: :index
+  after_action :allow_iframe_embedding, only: :index
 
   def index
     @dashboard = @portfolio_link_dashboard || MasterDashboardSummary.new
@@ -19,5 +20,9 @@ class HomeController < ApplicationController
   def last_nav_date
     nav_asset_types = Asset.asset_types.values_at('mutual_fund', 'etf')
     PriceHistory.joins(:asset).where(assets: { asset_type: nav_asset_types }).maximum(:price_date)
+  end
+
+  def allow_iframe_embedding
+    response.headers.delete('X-Frame-Options')
   end
 end
