@@ -1,5 +1,6 @@
 class HomeController < ApplicationController
   skip_before_action :load_portfolio_links, only: :update_nav
+  skip_before_action :authenticate_user!, only: :index
 
   def index
     @dashboard = @portfolio_link_dashboard || MasterDashboardSummary.new
